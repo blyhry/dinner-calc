@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>야근 식대 계산기</title>
+<style>
+@font-face{font-family:"Fromsol";src:url("https://cdn.jsdelivr.net/gh/Project-Noonnu/2607161334@griun-fromsol-rg/griun-fromsol-rg/Griun_Fromsol-Rg.woff2") format("woff2");font-display:swap}
+:root{
+  --paper:#FFFFFF; --ink:#232323; --muted:#8A8580; --accent:#FFB067; --accent-soft:#FFEBD6; --hl:#FFF3A8;
+  --hand:"Fromsol","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --sketch:255px 18px 225px 18px/18px 225px 18px 255px;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--hand);font-size:20px;line-height:1.5;padding-block:36px 56px;padding-inline:16px}
+.wrap{max-width:480px;margin:0 auto;display:grid;gap:26px}
+button,input{font-family:inherit;color:inherit}
+
+/* 손으로 그린 테두리: 가짜 요소에만 흔들림 필터를 걸어 글자는 선명하게 */
+.box{position:relative;padding:22px 20px}
+.box::before{content:"";position:absolute;inset:0;border:2px solid var(--ink);border-radius:var(--sketch);filter:url(#wobble);pointer-events:none}
+
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-size:34px;font-weight:400;margin:0;line-height:1.2}
+.sub{margin:6px 0 0;color:var(--muted);font-size:18px}
+.bowl{width:92px;height:92px;flex:none}
+
+.lbl{font-size:18px;color:var(--muted);display:block;margin-bottom:8px}
+.form{display:grid;gap:22px}
+.timein{position:relative}
+.timein::before{content:"";position:absolute;inset:0;border:2px solid var(--ink);border-radius:14px 22px 12px 26px/24px 12px 22px 14px;filter:url(#wobble);pointer-events:none}
+input[type=time]{font-size:36px;background:transparent;border:0;padding:6px 14px;width:100%;outline:none}
+.timein:focus-within{background:var(--hl);border-radius:14px 22px 12px 26px/24px 12px 22px 14px}
+
+.grapes{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.grapes button{position:relative;width:62px;height:62px;border:0;background:transparent;font-size:17px;cursor:pointer;border-radius:50%}
+.grapes button::before{content:"";position:absolute;inset:0;border:2px solid var(--ink);border-radius:50% 46% 52% 48%/48% 53% 47% 52%;filter:url(#wobble)}
+.grapes button[aria-pressed=true]::before{background:var(--accent)}
+.grapes button span{position:relative}
+.grapes button:hover{transform:rotate(-4deg)}
+
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg button{position:relative;border:0;background:transparent;padding:12px 8px;font-size:20px;cursor:pointer;line-height:1.3}
+.seg button::before{content:"";position:absolute;inset:0;border:2px solid var(--ink);border-radius:var(--sketch);filter:url(#wobble)}
+.seg button[aria-pressed=true]::before{background:var(--accent)}
+.seg button span,.seg button small{position:relative;display:block}
+.seg small{font-size:16px;color:var(--ink);opacity:.65}
+button:focus-visible{outline:2px dashed var(--ink);outline-offset:4px}
+
+.result{text-align:center;display:grid;gap:2px;padding-block:26px}
+.result::before{background:var(--accent-soft)}
+.result>*{position:relative}
+.result .k{font-size:20px}
+.result .t{font-size:78px;line-height:1.05;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.result .t .next{font-size:20px;margin-left:6px}
+.result .left{font-size:19px;color:var(--ink)}
+.result .left mark{background:linear-gradient(transparent 55%,var(--hl) 55%);color:inherit;padding:0 2px}
+
+.steps{list-style:none;margin:0;padding:0;display:grid}
+.steps li{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:9px 0;font-size:19px}
+.steps li+li{border-top:2px dashed #D9D4CE}
+.steps .dot{width:16px;height:16px;border:2px solid var(--ink);border-radius:50% 45% 55% 48%}
+.steps li.on .dot{background:var(--accent)}
+.steps li.on .what{background:linear-gradient(transparent 55%,var(--hl) 55%)}
+.steps .add{display:block;font-size:15px;color:var(--muted)}
+.steps .tm{font-size:22px;font-variant-numeric:tabular-nums}
+
+.rule{font-size:17px;color:var(--muted);margin:0;padding-inline:6px;line-height:1.6}
+
+@media (max-width:420px){
+  h1{font-size:30px}
+  .bowl{width:72px;height:72px}
+  .grapes button{width:54px;height:54px;font-size:15px}
+  .result .t{font-size:64px}
+}
+@media (prefers-reduced-motion:reduce){.grapes button:hover{transform:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="wobble"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="3.5"/></filter>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>야근 식대 계산기</h1>
+      <p class="sub">출근 시간만 넣으면 끝!</p>
+    </div>
+    <svg class="bowl" viewBox="0 0 100 100" fill="none" stroke="#232323" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="filter:url(#wobble)">
+      <path d="M36 30c-4-5 4-8 0-14M50 28c-4-5 4-8 0-14M64 30c-4-5 4-8 0-14"/>
+      <path d="M14 46h72c0 22-16 36-36 36S14 68 14 46z" fill="#FFB067"/>
+      <path d="M38 82l-2 8h28l-2-8"/>
+      <path d="M36 58c2 3 6 3 8 0M56 58c2 3 6 3 8 0"/>
+      <path d="M46 66c2 2 6 2 8 0"/>
+      <circle cx="30" cy="64" r="3" fill="#FF8A8A" stroke="none"/><circle cx="70" cy="64" r="3" fill="#FF8A8A" stroke="none"/>
+    </svg>
+  </header>
+
+  <section class="box form">
+    <div>
+      <label class="lbl" for="start">오늘 몇 시에 출근했어요?</label>
+      <div class="timein"><input type="time" id="start" value="10:00" step="60"></div>
+      <div class="grapes" aria-label="자주 쓰는 출근 시간">
+        <button type="button" data-t="08:00"><span>8:00</span></button>
+        <button type="button" data-t="08:30"><span>8:30</span></button>
+        <button type="button" data-t="09:00"><span>9:00</span></button>
+        <button type="button" data-t="09:30"><span>9:30</span></button>
+        <button type="button" data-t="10:00"><span>10:00</span></button>
+        <button type="button" data-t="10:30"><span>10:30</span></button>
+      </div>
+    </div>
+    <div>
+      <span class="lbl">저녁은요?</span>
+      <div class="seg" role="group" aria-label="석식 여부">
+        <button type="button" id="eat" aria-pressed="true"><span>먹고 갈래요</span><small>+2시간 30분</small></button>
+        <button type="button" id="noeat" aria-pressed="false"><span>안 먹고 갈래요</span><small>+2시간</small></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="box result" aria-live="polite">
+    <span class="k">식대 쓰려면 이 시간까지 있어야 해요</span>
+    <span class="t" id="out">21:30</span>
+    <span class="left" id="left" hidden></span>
+  </section>
+
+  <section class="box" aria-label="계산 과정">
+    <ul class="steps">
+      <li><span class="dot"></span><span class="what">출근</span><span class="tm" id="s1">10:00</span></li>
+      <li><span class="dot"></span><span class="what">정규 퇴근<span class="add">+9시간 (점심 1시간 포함)</span></span><span class="tm" id="s2">19:00</span></li>
+      <li id="rowEat"><span class="dot"></span><span class="what">저녁 먹고 가면<span class="add">+2시간 30분</span></span><span class="tm" id="s3">21:30</span></li>
+      <li id="rowNo"><span class="dot"></span><span class="what">저녁 안 먹고 가면<span class="add">+2시간</span></span><span class="tm" id="s4">21:00</span></li>
+    </ul>
+  </section>
+
+  <p class="rule">출근하고 9시간(근무 8시간 + 점심 1시간) 뒤가 정규 퇴근이에요. 8시 출근이면 17시, 9시면 18시, 10시면 19시! 여기서 저녁을 먹고 가면 2시간 30분, 안 먹고 가면 2시간을 더 있어야 식대를 쓸 수 있어요.</p>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var startEl = $('start'), eatBtn = $('eat'), noBtn = $('noeat');
+  var eat = true;
+
+  try {
+    var saved = JSON.parse(localStorage.getItem('dinner-calc') || 'null');
+    if (saved) { if (saved.start) startEl.value = saved.start; eat = saved.eat !== false; }
+  } catch(e){}
+
+  function toMin(v){ var p = v.split(':'); return (+p[0]) * 60 + (+p[1]); }
+  function hm(m){ var r = ((m % 1440) + 1440) % 1440; return String(Math.floor(r / 60)).padStart(2,'0') + ':' + String(r % 60).padStart(2,'0'); }
+  function tag(m){ return m >= 1440 ? ' (+1)' : ''; }
+  function dur(m){ var h = Math.floor(m / 60), mm = m % 60; return [h ? h + '시간' : '', mm ? mm + '분' : ''].join(' ').trim() || '1분'; }
+
+  function render(){
+    if (!startEl.value) return;
+    var s = toMin(startEl.value), off = s + 540, a = off + 150, b = off + 120;
+    var target = eat ? a : b;
+    $('out').innerHTML = hm(target) + (target >= 1440 ? '<span class="next">다음 날</span>' : '');
+    $('s1').textContent = hm(s);
+    $('s2').textContent = hm(off) + tag(off);
+    $('s3').textContent = hm(a) + tag(a);
+    $('s4').textContent = hm(b) + tag(b);
+    $('rowEat').className = eat ? 'on' : '';
+    $('rowNo').className = eat ? '' : 'on';
+    eatBtn.setAttribute('aria-pressed', eat); noBtn.setAttribute('aria-pressed', !eat);
+    document.querySelectorAll('.grapes button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.t === startEl.value); });
+
+    var now = new Date(), n = now.getHours() * 60 + now.getMinutes();
+    var left = $('left');
+    if (n >= s && n < target) { left.innerHTML = '앞으로 <mark>' + dur(target - n) + '</mark> 남았어요'; left.hidden = false; }
+    else left.hidden = true;
+
+    try { localStorage.setItem('dinner-calc', JSON.stringify({ start: startEl.value, eat: eat })); } catch(e){}
+  }
+
+  startEl.addEventListener('input', render);
+  eatBtn.addEventListener('click', function(){ eat = true; render(); });
+  noBtn.addEventListener('click', function(){ eat = false; render(); });
+  document.querySelectorAll('.grapes button').forEach(function(b){
+    b.addEventListener('click', function(){ startEl.value = b.dataset.t; render(); });
+  });
+  render();
+  setInterval(render, 30000);
+})();
+</script>
+</body>
+</html>
